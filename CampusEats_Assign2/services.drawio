@@ -1,0 +1,33 @@
+<mxfile host="app.diagrams.net" agent="ChatGPT">
+  <diagram name="services" id="services-diagram">
+    <mxGraphModel dx="891" dy="453" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="accounts" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="Accounts Service&lt;br&gt;Owns: users, addresses&lt;br&gt;Responsible: [Harsh]" vertex="1">
+          <mxGeometry height="90" width="220" x="120" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="catalogue" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="Catalogue Service&lt;br&gt;Owns: restaurants, menu_items&lt;br&gt;Responsible: [Sushant]" vertex="1">
+          <mxGeometry height="90" width="220" x="500" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="orders" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="Orders Service&lt;br&gt;Owns: carts, orders, order_items&lt;br&gt;Responsible: [Harsh]" vertex="1">
+          <mxGeometry height="90" width="220" x="120" y="330" as="geometry" />
+        </mxCell>
+        <mxCell id="wPxMHFg_L0KmtTRRDLAc-1" edge="1" parent="1" source="payments" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="catalogue">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="payments" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="Payments Service&lt;br&gt;Owns: payments&lt;br&gt;Responsible: [Sushant]&amp;nbsp;" vertex="1">
+          <mxGeometry height="90" width="220" x="500" y="330" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" edge="1" parent="1" source="orders" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;" target="payments" value="makePayment">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="470" y="390" />
+              <mxPoint x="470" y="390" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
