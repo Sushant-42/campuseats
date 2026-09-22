@@ -1,0 +1,10 @@
+{
+  "student_id": "S001",
+  "restaurant_id": "R001",
+  "items": [
+    {
+      "item_id": "I001",
+      "quantity": 2
+    }
+  ]
+}

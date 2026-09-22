@@ -1,0 +1,68 @@
+<mxfile host="app.diagrams.net" modified="2026-08-16T00:00:00.000Z" agent="ChatGPT" version="24.7.17">
+  <diagram name="schema" id="schema-diagram">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="a1" value="ACCOUNTS SERVICE" style="swimlane;fontStyle=1;horizontal=0;startSize=30;rounded=0;html=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="340" height="260" as="geometry"/>
+        </mxCell>
+        <mxCell id="users" value="users&#xa;PK user_id&#xa;name&#xa;email&#xa;password" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="a1">
+          <mxGeometry x="25" y="55" width="135" height="130" as="geometry"/>
+        </mxCell>
+        <mxCell id="addresses" value="addresses&#xa;PK address_id&#xa;user_id&#xa;address" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="a1">
+          <mxGeometry x="180" y="55" width="135" height="130" as="geometry"/>
+        </mxCell>
+        <mxCell id="ua" value="1 : many" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=ERmany;startArrow=ERone;" edge="1" parent="a1" source="users" target="addresses">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="a2" value="CATALOGUE SERVICE" style="swimlane;fontStyle=1;horizontal=0;startSize=30;rounded=0;html=1;" vertex="1" parent="1">
+          <mxGeometry x="460" y="40" width="340" height="260" as="geometry"/>
+        </mxCell>
+        <mxCell id="restaurants" value="restaurants&#xa;PK restaurant_id&#xa;name" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="a2">
+          <mxGeometry x="25" y="55" width="135" height="110" as="geometry"/>
+        </mxCell>
+        <mxCell id="menu" value="menu_items&#xa;PK item_id&#xa;restaurant_id&#xa;name&#xa;price&#xa;available" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="a2">
+          <mxGeometry x="180" y="55" width="135" height="130" as="geometry"/>
+        </mxCell>
+        <mxCell id="rm" value="1 : many" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=ERmany;startArrow=ERone;" edge="1" parent="a2" source="restaurants" target="menu">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="a3" value="ORDERS SERVICE" style="swimlane;fontStyle=1;horizontal=0;startSize=30;rounded=0;html=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="350" width="760" height="300" as="geometry"/>
+        </mxCell>
+        <mxCell id="carts" value="carts&#xa;PK cart_id&#xa;user_id" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="a3">
+          <mxGeometry x="25" y="55" width="140" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="orders" value="orders&#xa;PK order_id&#xa;user_id&#xa;address_id&#xa;total&#xa;status" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="a3">
+          <mxGeometry x="205" y="55" width="165" height="125" as="geometry"/>
+        </mxCell>
+        <mxCell id="orderitems" value="order_items&#xa;PK order_item_id&#xa;order_id&#xa;item_id&#xa;quantity&#xa;price" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="a3">
+          <mxGeometry x="415" y="55" width="165" height="135" as="geometry"/>
+        </mxCell>
+        <mxCell id="oc" value="cart → order (application relationship)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;" edge="1" parent="a3" source="carts" target="orders">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="oi" value="1 : many" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=ERmany;startArrow=ERone;" edge="1" parent="a3" source="orders" target="orderitems">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="note" value="item_id refers to a Catalogue item through the service contract; no cross-service foreign key." style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;" vertex="1" parent="a3">
+          <mxGeometry x="25" y="205" width="650" height="55" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="a4" value="PAYMENTS SERVICE" style="swimlane;fontStyle=1;horizontal=0;startSize=30;rounded=0;html=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="700" width="760" height="190" as="geometry"/>
+        </mxCell>
+        <mxCell id="payments" value="payments&#xa;PK payment_id&#xa;order_id (reference)&#xa;amount&#xa;status" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="a4">
+          <mxGeometry x="25" y="55" width="180" height="105" as="geometry"/>
+        </mxCell>
+        <mxCell id="pnote" value="order_id is a service-level reference, not a database foreign key." style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;" vertex="1" parent="a4">
+          <mxGeometry x="235" y="65" width="450" height="70" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

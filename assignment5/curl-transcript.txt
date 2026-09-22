@@ -1,0 +1,487 @@
+============================================================
+CampusEats Orders REST Service - Assignment 5 curl Evidence Transcript
+============================================================
+
+Team ID: 5
+Sushant Prashant Prabhavalakar - 20251651093
+Harsh Yadav - 20251651042
+
+Service: CampusEats Orders REST Service
+Base URL: http://localhost:8000
+
+The response bodies and HTTP response headers below were captured from a
+real run of service/app.py. The transcript has been retained as evidence
+from that run while make_transcript.py now uses curl -v -sS for the final
+regeneration. Regenerate this file with make_transcript.py before final
+submission so the stored transcript contains the verbose curl trace.
+
+============================================================
+1. Successful order creation - 201 Created + Location + rate-limit headers
+============================================================
+
+COMMAND:
+
+curl -v -sS -X POST $BASE/orders -H "Content-Type: application/json" -H "Authorization: Bearer tok-create" -H "Idempotency-Key: demo-create-1" --data-raw '{"student_id":"S100","restaurant_id":"R100","items":[{"item_id":"I001","quantity":2}]}'
+
+ACTUAL OUTPUT:
+
+HTTP/1.1 201 CREATED
+Server: Werkzeug/3.1.7 Python/3.12.3
+Date: Tue, 22 Sep 2026 09:44:53 GMT
+Content-Type: application/json
+Content-Length: 168
+Location: /orders/32070765-ce66-4fc8-b755-3f37f9edf115
+Cache-Control: no-store
+X-Content-Type-Options: nosniff
+Strict-Transport-Security: max-age=63072000; includeSubDomains
+Access-Control-Allow-Origin: *
+X-RateLimit-Limit: 5
+X-RateLimit-Remaining: 4
+Connection: close
+
+{"items":[{"item_id":"I001","quantity":2}],"order_id":"32070765-ce66-4fc8-b755-3f37f9edf115","restaurant_id":"R100","status":"pending","student_id":"S100","total":0.0}
+
+============================================================
+2. Idempotency-Key repeated - same key returns original order, 200 (no duplicate)
+============================================================
+
+COMMAND:
+
+curl -v -sS -X POST $BASE/orders -H "Content-Type: application/json" -H "Authorization: Bearer tok-create" -H "Idempotency-Key: demo-create-1" --data-raw '{"student_id":"S100","restaurant_id":"R100","items":[{"item_id":"I001","quantity":2}]}' (same body + same Idempotency-Key as step 1)
+
+ACTUAL OUTPUT:
+
+HTTP/1.1 200 OK
+Server: Werkzeug/3.1.7 Python/3.12.3
+Date: Tue, 22 Sep 2026 09:44:53 GMT
+Content-Type: application/json
+Content-Length: 168
+Cache-Control: no-store
+X-Content-Type-Options: nosniff
+Strict-Transport-Security: max-age=63072000; includeSubDomains
+Access-Control-Allow-Origin: *
+X-RateLimit-Limit: 5
+X-RateLimit-Remaining: 3
+Connection: close
+
+{"items":[{"item_id":"I001","quantity":2}],"order_id":"32070765-ce66-4fc8-b755-3f37f9edf115","restaurant_id":"R100","status":"pending","student_id":"S100","total":0.0}
+
+============================================================
+3. Malformed JSON body - 400 Bad Request
+============================================================
+
+COMMAND:
+
+curl -v -sS -X POST $BASE/orders -H "Content-Type: application/json" -H "Authorization: Bearer tok-malformed" -H "Idempotency-Key: demo-bad-json" -d "{bad json"
+
+ACTUAL OUTPUT:
+
+HTTP/1.1 400 BAD REQUEST
+Server: Werkzeug/3.1.7 Python/3.12.3
+Date: Tue, 22 Sep 2026 09:44:53 GMT
+Content-Type: application/json
+Content-Length: 107
+X-Content-Type-Options: nosniff
+Strict-Transport-Security: max-age=63072000; includeSubDomains
+Access-Control-Allow-Origin: *
+X-RateLimit-Limit: 5
+X-RateLimit-Remaining: 4
+Connection: close
+
+{"detail":"Request body is not valid JSON.","status":400,"title":"Malformed request","type":"about:blank"}
+
+============================================================
+4. Domain validation failure (valid JSON, missing fields) - 422 Unprocessable Entity
+============================================================
+
+COMMAND:
+
+curl -v -sS -X POST $BASE/orders -H "Content-Type: application/json" -H "Authorization: Bearer tok-422" -H "Idempotency-Key: demo-422" --data-raw '{"student_id":"S100"}'
+
+ACTUAL OUTPUT:
+
+HTTP/1.1 422 UNPROCESSABLE ENTITY
+Server: Werkzeug/3.1.7 Python/3.12.3
+Date: Tue, 22 Sep 2026 09:44:53 GMT
+Content-Type: application/json
+Content-Length: 102
+X-Content-Type-Options: nosniff
+Strict-Transport-Security: max-age=63072000; includeSubDomains
+Access-Control-Allow-Origin: *
+X-RateLimit-Limit: 5
+X-RateLimit-Remaining: 4
+Connection: close
+
+{"detail":"Missing field: restaurant_id","status":422,"title":"Invalid request","type":"about:blank"}
+
+============================================================
+5. Missing Authorization header - 401 Unauthorized
+============================================================
+
+COMMAND:
+
+curl -v -sS -X POST $BASE/orders -H "Content-Type: application/json" -H "Idempotency-Key: demo-401" --data-raw '{"student_id":"S1","restaurant_id":"R1","items":[{"item_id":"I1","quantity":1}]}'
+
+ACTUAL OUTPUT:
+
+HTTP/1.1 401 UNAUTHORIZED
+Server: Werkzeug/3.1.7 Python/3.12.3
+Date: Tue, 22 Sep 2026 09:44:53 GMT
+Content-Type: application/json
+Content-Length: 128
+X-Content-Type-Options: nosniff
+Strict-Transport-Security: max-age=63072000; includeSubDomains
+Access-Control-Allow-Origin: *
+Connection: close
+
+{"detail":"A valid Authorization: Bearer <token> header is required.","status":401,"title":"Unauthorized","type":"about:blank"}
+
+============================================================
+6. Missing resource - 404 Not Found
+============================================================
+
+COMMAND:
+
+curl -v -sS $BASE/orders/does-not-exist
+
+ACTUAL OUTPUT:
+
+HTTP/1.1 404 NOT FOUND
+Server: Werkzeug/3.1.7 Python/3.12.3
+Date: Tue, 22 Sep 2026 09:44:53 GMT
+Content-Type: application/json
+Content-Length: 109
+X-Content-Type-Options: nosniff
+Strict-Transport-Security: max-age=63072000; includeSubDomains
+Access-Control-Allow-Origin: *
+Connection: close
+
+{"detail":"The requested order does not exist.","status":404,"title":"Order not found","type":"about:blank"}
+
+============================================================
+7. GET single order - 200 with ETag + Cache-Control
+============================================================
+
+COMMAND:
+
+curl -v -sS $BASE/orders/32070765-ce66-4fc8-b755-3f37f9edf115
+
+ACTUAL OUTPUT:
+
+HTTP/1.1 200 OK
+Server: Werkzeug/3.1.7 Python/3.12.3
+Date: Tue, 22 Sep 2026 09:44:53 GMT
+Content-Type: application/json
+Content-Length: 168
+ETag: "d632e44fed1fac7410db278cba357683"
+Cache-Control: private, max-age=30
+X-Content-Type-Options: nosniff
+Strict-Transport-Security: max-age=63072000; includeSubDomains
+Access-Control-Allow-Origin: *
+Connection: close
+
+{"items":[{"item_id":"I001","quantity":2}],"order_id":"32070765-ce66-4fc8-b755-3f37f9edf115","restaurant_id":"R100","status":"pending","student_id":"S100","total":0.0}
+
+============================================================
+8. Conditional GET with matching If-None-Match - 304 Not Modified
+============================================================
+
+COMMAND:
+
+curl -v -sS $BASE/orders/32070765-ce66-4fc8-b755-3f37f9edf115 -H 'If-None-Match: "d632e44fed1fac7410db278cba357683"'
+
+ACTUAL OUTPUT:
+
+HTTP/1.1 304 NOT MODIFIED
+Server: Werkzeug/3.1.7 Python/3.12.3
+Date: Tue, 22 Sep 2026 09:44:53 GMT
+ETag: "d632e44fed1fac7410db278cba357683"
+Cache-Control: private, max-age=30
+X-Content-Type-Options: nosniff
+Strict-Transport-Security: max-age=63072000; includeSubDomains
+Access-Control-Allow-Origin: *
+Connection: close
+
+============================================================
+9. Conditional write with stale If-Match - 412 Precondition Failed
+============================================================
+
+COMMAND:
+
+curl -v -sS -X PATCH $BASE/orders/32070765-ce66-4fc8-b755-3f37f9edf115 -H "Content-Type: application/json" -H "Authorization: Bearer tok-write" -H 'If-Match: "stale-etag-value"' --data-raw '{"status":"confirmed"}'
+
+ACTUAL OUTPUT:
+
+HTTP/1.1 412 PRECONDITION FAILED
+Server: Werkzeug/3.1.7 Python/3.12.3
+Date: Tue, 22 Sep 2026 09:44:53 GMT
+Content-Type: application/json
+Content-Length: 143
+X-Content-Type-Options: nosniff
+Strict-Transport-Security: max-age=63072000; includeSubDomains
+Access-Control-Allow-Origin: *
+X-RateLimit-Limit: 5
+X-RateLimit-Remaining: 4
+Connection: close
+
+{"detail":"The order has changed since you last read it. Re-fetch and retry.","status":412,"title":"Precondition Failed","type":"about:blank"}
+
+============================================================
+10. Conditional write with correct If-Match - 200 OK (order moves pending -> confirmed, ETag changes)
+============================================================
+
+COMMAND:
+
+curl -v -sS -X PATCH $BASE/orders/32070765-ce66-4fc8-b755-3f37f9edf115 -H "Content-Type: application/json" -H "Authorization: Bearer tok-write" -H 'If-Match: "d632e44fed1fac7410db278cba357683"' --data-raw '{"status":"confirmed"}'
+
+ACTUAL OUTPUT:
+
+HTTP/1.1 200 OK
+Server: Werkzeug/3.1.7 Python/3.12.3
+Date: Tue, 22 Sep 2026 09:44:53 GMT
+Content-Type: application/json
+Content-Length: 170
+ETag: "2ec0bf2807971c3a891a5b3175b5c3d8"
+Cache-Control: no-store
+X-Content-Type-Options: nosniff
+Strict-Transport-Security: max-age=63072000; includeSubDomains
+Access-Control-Allow-Origin: *
+X-RateLimit-Limit: 5
+X-RateLimit-Remaining: 3
+Connection: close
+
+{"items":[{"item_id":"I001","quantity":2}],"order_id":"32070765-ce66-4fc8-b755-3f37f9edf115","restaurant_id":"R100","status":"confirmed","student_id":"S100","total":0.0}
+
+============================================================
+11a. (setup) create a fresh pending order for the 409 demo
+============================================================
+
+COMMAND:
+
+curl -v -sS -X POST $BASE/orders -H "Content-Type: application/json" -H "Authorization: Bearer tok-conflict" -H "Idempotency-Key: demo-conflict-order" --data-raw '{"student_id":"S200","restaurant_id":"R200","items":[{"item_id":"I001","quantity":1}]}'
+
+ACTUAL OUTPUT:
+
+HTTP/1.1 201 CREATED
+Server: Werkzeug/3.1.7 Python/3.12.3
+Date: Tue, 22 Sep 2026 09:44:56 GMT
+Content-Type: application/json
+Content-Length: 168
+Location: /orders/6280783b-365a-4663-a17d-11b8cefc075b
+Cache-Control: no-store
+X-Content-Type-Options: nosniff
+Strict-Transport-Security: max-age=63072000; includeSubDomains
+Access-Control-Allow-Origin: *
+X-RateLimit-Limit: 5
+X-RateLimit-Remaining: 4
+Connection: close
+
+{"items":[{"item_id":"I001","quantity":1}],"order_id":"6280783b-365a-4663-a17d-11b8cefc075b","restaurant_id":"R200","status":"pending","student_id":"S200","total":0.0}
+
+============================================================
+11b. Invalid state transition (pending -> delivered) - 409 Conflict
+============================================================
+
+COMMAND:
+
+curl -v -sS -X PATCH $BASE/orders/6280783b-365a-4663-a17d-11b8cefc075b -H "Content-Type: application/json" -H "Authorization: Bearer tok-conflict" --data-raw '{"status":"delivered"}'
+
+ACTUAL OUTPUT:
+
+HTTP/1.1 409 CONFLICT
+Server: Werkzeug/3.1.7 Python/3.12.3
+Date: Tue, 22 Sep 2026 09:44:56 GMT
+Content-Type: application/json
+Content-Length: 129
+X-Content-Type-Options: nosniff
+Strict-Transport-Security: max-age=63072000; includeSubDomains
+Access-Control-Allow-Origin: *
+X-RateLimit-Limit: 5
+X-RateLimit-Remaining: 3
+Connection: close
+
+{"detail":"Order cannot change from pending to delivered.","status":409,"title":"Invalid state transition","type":"about:blank"}
+
+============================================================
+12. OPTIONS on a single resource - Allow header lists its methods
+============================================================
+
+COMMAND:
+
+curl -v -sS -X OPTIONS $BASE/orders/32070765-ce66-4fc8-b755-3f37f9edf115
+
+ACTUAL OUTPUT:
+
+HTTP/1.1 200 OK
+Server: Werkzeug/3.1.7 Python/3.12.3
+Date: Tue, 22 Sep 2026 09:44:56 GMT
+Content-Type: text/html; charset=utf-8
+Allow: OPTIONS, GET, HEAD, PATCH
+X-Content-Type-Options: nosniff
+Strict-Transport-Security: max-age=63072000; includeSubDomains
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Methods: OPTIONS, GET, HEAD, PATCH
+Access-Control-Allow-Headers: Content-Type, Authorization, Idempotency-Key, If-Match, If-None-Match, X-HTTP-Method-Override
+Content-Length: 0
+Connection: close
+
+============================================================
+13. CORS preflight on the collection resource
+============================================================
+
+COMMAND:
+
+curl -v -sS -X OPTIONS $BASE/orders -H "Origin: http://example.com" -H "Access-Control-Request-Method: POST"
+
+ACTUAL OUTPUT:
+
+HTTP/1.1 200 OK
+Server: Werkzeug/3.1.7 Python/3.12.3
+Date: Tue, 22 Sep 2026 09:44:56 GMT
+Content-Type: text/html; charset=utf-8
+Allow: OPTIONS, GET, POST, HEAD
+X-Content-Type-Options: nosniff
+Strict-Transport-Security: max-age=63072000; includeSubDomains
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Methods: OPTIONS, GET, POST, HEAD
+Access-Control-Allow-Headers: Content-Type, Authorization, Idempotency-Key, If-Match, If-None-Match, X-HTTP-Method-Override
+Content-Length: 0
+Connection: close
+
+============================================================
+14. Unsupported Accept header - 406 Not Acceptable
+============================================================
+
+COMMAND:
+
+curl -v -sS $BASE/orders -H "Accept: text/xml"
+
+ACTUAL OUTPUT:
+
+HTTP/1.1 406 NOT ACCEPTABLE
+Server: Werkzeug/3.1.7 Python/3.12.3
+Date: Tue, 22 Sep 2026 09:44:56 GMT
+Content-Type: application/json
+Content-Length: 113
+X-Content-Type-Options: nosniff
+Strict-Transport-Security: max-age=63072000; includeSubDomains
+Access-Control-Allow-Origin: *
+Connection: close
+
+{"detail":"This API only produces application/json.","status":406,"title":"Not Acceptable","type":"about:blank"}
+
+============================================================
+15a. (setup) create a fresh order for the method-override demo
+============================================================
+
+COMMAND:
+
+curl -v -sS -X POST $BASE/orders -H "Content-Type: application/json" -H "Authorization: Bearer tok-override" -H "Idempotency-Key: demo-override-order" --data-raw '{"student_id":"S300","restaurant_id":"R300","items":[{"item_id":"I001","quantity":1}]}'
+
+ACTUAL OUTPUT:
+
+HTTP/1.1 201 CREATED
+Server: Werkzeug/3.1.7 Python/3.12.3
+Date: Tue, 22 Sep 2026 09:45:00 GMT
+Content-Type: application/json
+Content-Length: 168
+Location: /orders/be1269c1-832f-4592-9fd4-87b9dc860d5b
+Cache-Control: no-store
+X-Content-Type-Options: nosniff
+Strict-Transport-Security: max-age=63072000; includeSubDomains
+Access-Control-Allow-Origin: *
+X-RateLimit-Limit: 5
+X-RateLimit-Remaining: 4
+Connection: close
+
+{"items":[{"item_id":"I001","quantity":1}],"order_id":"be1269c1-832f-4592-9fd4-87b9dc860d5b","restaurant_id":"R300","status":"pending","student_id":"S300","total":0.0}
+
+============================================================
+15b. X-HTTP-Method-Override - a POST is treated as PATCH
+============================================================
+
+COMMAND:
+
+curl -v -sS -X POST $BASE/orders/be1269c1-832f-4592-9fd4-87b9dc860d5b -H "Content-Type: application/json" -H "Authorization: Bearer tok-override" -H "X-HTTP-Method-Override: PATCH" --data-raw '{"status":"confirmed"}'
+
+ACTUAL OUTPUT:
+
+HTTP/1.1 200 OK
+Server: Werkzeug/3.1.7 Python/3.12.3
+Date: Tue, 22 Sep 2026 09:45:00 GMT
+Content-Type: application/json
+Content-Length: 170
+ETag: "a9a1adbbd90a497552e4591a7d68f97a"
+Cache-Control: no-store
+X-Content-Type-Options: nosniff
+Strict-Transport-Security: max-age=63072000; includeSubDomains
+Access-Control-Allow-Origin: *
+X-RateLimit-Limit: 5
+X-RateLimit-Remaining: 3
+Connection: close
+
+{"items":[{"item_id":"I001","quantity":1}],"order_id":"be1269c1-832f-4592-9fd4-87b9dc860d5b","restaurant_id":"R300","status":"confirmed","student_id":"S300","total":0.0}
+
+============================================================
+16a. (setup) create a fresh order for the rate-limit demo
+============================================================
+
+COMMAND:
+
+curl -v -sS -X POST $BASE/orders -H "Content-Type: application/json" -H "Authorization: Bearer tok-setup-for-ratelimit" -H "Idempotency-Key: demo-ratelimit-order" --data-raw '{"student_id":"S400","restaurant_id":"R400","items":[{"item_id":"I001","quantity":1}]}'
+
+ACTUAL OUTPUT:
+
+HTTP/1.1 201 CREATED
+Server: Werkzeug/3.1.7 Python/3.12.3
+Date: Tue, 22 Sep 2026 09:45:03 GMT
+Content-Type: application/json
+Content-Length: 168
+Location: /orders/adac5a49-eb81-42f4-9f49-7d33300f998e
+Cache-Control: no-store
+X-Content-Type-Options: nosniff
+Strict-Transport-Security: max-age=63072000; includeSubDomains
+Access-Control-Allow-Origin: *
+X-RateLimit-Limit: 5
+X-RateLimit-Remaining: 4
+Connection: close
+
+{"items":[{"item_id":"I001","quantity":1}],"order_id":"adac5a49-eb81-42f4-9f49-7d33300f998e","restaurant_id":"R400","status":"pending","student_id":"S400","total":0.0}
+
+============================================================
+16b. Rate limit exceeded - 6 calls with the SAME fresh Bearer token against the
+     default per-client budget of 5 requests / 60 seconds -> the 6th gets 429 + Retry-After
+
+COMMAND (repeated 6 times, same token):
+curl -v -sS -X POST $BASE/orders/adac5a49-eb81-42f4-9f49-7d33300f998e/cancellation -H "Authorization: Bearer tok-ratelimit-demo"
+
+ACTUAL OUTPUT (status line + rate-limit headers for each call):
+--- call 1 ---
+HTTP/1.1 202 ACCEPTED
+X-RateLimit-Limit: 5
+X-RateLimit-Remaining: 4
+--- call 2 ---
+HTTP/1.1 409 CONFLICT
+X-RateLimit-Limit: 5
+X-RateLimit-Remaining: 3
+--- call 3 ---
+HTTP/1.1 409 CONFLICT
+X-RateLimit-Limit: 5
+X-RateLimit-Remaining: 2
+--- call 4 ---
+HTTP/1.1 409 CONFLICT
+X-RateLimit-Limit: 5
+X-RateLimit-Remaining: 1
+--- call 5 ---
+HTTP/1.1 409 CONFLICT
+X-RateLimit-Limit: 5
+X-RateLimit-Remaining: 0
+--- call 6 ---
+HTTP/1.1 429 TOO MANY REQUESTS
+X-RateLimit-Limit: 5
+X-RateLimit-Remaining: 0
+Retry-After: 59
+
+============================================================
+End of transcript
+============================================================
