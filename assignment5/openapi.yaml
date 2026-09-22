@@ -1,0 +1,498 @@
+openapi: 3.0.3
+
+info:
+  title: CampusEats Orders API
+  version: 2.0.0
+  description: >
+    REST API for managing CampusEats orders.
+    Assignment 5 adds correct HTTP method usage, content negotiation,
+    authorization, caching, conditional requests, rate limiting, CORS and
+    security headers on top of the Assignment 4 implementation. The API is
+    served over HTTPS in production; the local dev server in this
+    submission runs over HTTP for testing only.
+
+servers:
+  - url: http://localhost:8000
+
+paths:
+
+  /orders:
+    post:
+      summary: Create an order
+      operationId: createOrder
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+          description: >
+            Client-generated key. Replaying the same key returns the
+            original 201 response body with a 200 status instead of
+            creating a duplicate order.
+        - $ref: '#/components/parameters/Accept'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderCreate'
+      responses:
+        '201':
+          description: Order created
+          headers:
+            Location:
+              description: URL of the newly created order.
+              schema:
+                type: string
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/RateLimitLimit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimitRemaining'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '200':
+          description: Same Idempotency-Key replayed - original order returned, nothing created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          description: Malformed request body (not valid JSON / not a JSON object).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          description: Missing or empty Authorization Bearer token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '406':
+          description: Accept header does not include application/json.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Valid JSON but fails domain validation (missing/invalid fields).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '429':
+          description: Per-client rate limit exceeded.
+          headers:
+            Retry-After:
+              $ref: '#/components/headers/RetryAfter'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimitRemaining'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+    get:
+      summary: List orders (filter, sort, paginate)
+      operationId: listOrders
+      parameters:
+        - name: student_id
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [student_id, restaurant_id, status]
+        - name: order
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+        - $ref: '#/components/parameters/Accept'
+      responses:
+        '200':
+          description: Orders returned
+          headers:
+            Content-Encoding:
+              description: "'gzip' when the client sent Accept-Encoding: gzip and the body was large enough to compress."
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+        '406':
+          description: Accept header does not include application/json.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Invalid query (bad student_id, sort, order, limit or offset).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+    options:
+      summary: CORS preflight / supported methods for the orders collection
+      operationId: optionsOrders
+      responses:
+        '200':
+          description: Allowed methods for this resource.
+          headers:
+            Allow:
+              schema:
+                type: string
+            Access-Control-Allow-Methods:
+              schema:
+                type: string
+            Access-Control-Allow-Headers:
+              schema:
+                type: string
+
+  /orders/{order_id}:
+    get:
+      summary: Get an order (cacheable, supports conditional GET)
+      operationId: getOrder
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+        - name: If-None-Match
+          in: header
+          required: false
+          schema:
+            type: string
+          description: When it matches the current ETag, the server returns 304 with no body.
+        - $ref: '#/components/parameters/Accept'
+      responses:
+        '200':
+          description: Order found
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Cache-Control:
+              $ref: '#/components/headers/CacheControl'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '304':
+          description: Not Modified - the client's cached copy (If-None-Match) is still current.
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Cache-Control:
+              $ref: '#/components/headers/CacheControl'
+        '404':
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+    patch:
+      summary: Update order status (supports conditional write)
+      operationId: updateOrder
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+        - name: If-Match
+          in: header
+          required: false
+          schema:
+            type: string
+          description: >
+            When present and it no longer matches the order's current ETag,
+            the update is rejected with 412 instead of silently overwriting
+            a change another client just made.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderUpdate'
+      responses:
+        '200':
+          description: Order updated
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/RateLimitLimit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimitRemaining'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          description: Malformed request body.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          description: Missing or empty Authorization Bearer token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: Invalid state transition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '412':
+          description: If-Match no longer matches the order's current ETag.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Valid JSON but invalid/missing status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '429':
+          description: Per-client rate limit exceeded.
+          headers:
+            Retry-After:
+              $ref: '#/components/headers/RetryAfter'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+    options:
+      summary: Supported methods for a single order (Allow header)
+      operationId: optionsOrder
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+      responses:
+        '200':
+          description: Allowed methods for this resource.
+          headers:
+            Allow:
+              description: e.g. "GET, PATCH, HEAD, OPTIONS"
+              schema:
+                type: string
+            Access-Control-Allow-Methods:
+              schema:
+                type: string
+            Access-Control-Allow-Headers:
+              schema:
+                type: string
+
+  /orders/{order_id}/cancellation:
+    post:
+      summary: Cancel an order (state-changing sub-resource, not a bare verb-in-URL)
+      operationId: cancelOrder
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+      responses:
+        '202':
+          description: Order cancellation accepted
+          headers:
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/RateLimitLimit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimitRemaining'
+        '401':
+          description: Missing or empty Authorization Bearer token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: Order cannot be cancelled (already delivered or cancelled)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '429':
+          description: Per-client rate limit exceeded.
+          headers:
+            Retry-After:
+              $ref: '#/components/headers/RetryAfter'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: >
+        Header handling only - the token is checked for presence, not
+        validated against a real user/token store.
+
+  parameters:
+    OrderId:
+      name: order_id
+      in: path
+      required: true
+      schema:
+        type: string
+    Accept:
+      name: Accept
+      in: header
+      required: false
+      schema:
+        type: string
+        default: application/json
+      description: Only application/json (or */*) is honoured; anything else gets 406.
+
+  headers:
+    ETag:
+      description: Opaque identifier for the order's current state. Changes whenever the order changes.
+      schema:
+        type: string
+    CacheControl:
+      description: Caching policy for this single-item read.
+      schema:
+        type: string
+        example: private, max-age=30
+    RetryAfter:
+      description: Seconds until the client's rate-limit window resets.
+      schema:
+        type: integer
+    RateLimitLimit:
+      description: Requests allowed per client per window.
+      schema:
+        type: integer
+    RateLimitRemaining:
+      description: Requests remaining in the current window for this client.
+      schema:
+        type: integer
+
+  schemas:
+
+    OrderCreate:
+      type: object
+      required:
+        - student_id
+        - restaurant_id
+        - items
+      properties:
+        student_id:
+          type: string
+        restaurant_id:
+          type: string
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/OrderItem'
+
+    OrderItem:
+      type: object
+      required:
+        - item_id
+        - quantity
+      properties:
+        item_id:
+          type: string
+        quantity:
+          type: integer
+          minimum: 1
+
+    OrderUpdate:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - pending
+            - confirmed
+            - preparing
+            - ready
+            - delivered
+            - cancelled
+
+    Order:
+      type: object
+      required:
+        - order_id
+        - student_id
+        - restaurant_id
+        - items
+        - status
+      properties:
+        order_id:
+          type: string
+        student_id:
+          type: string
+        restaurant_id:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+        status:
+          type: string
+        total:
+          type: number
+          format: float
+
+    Problem:
+      type: object
+      required:
+        - type
+        - title
+        - status
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
