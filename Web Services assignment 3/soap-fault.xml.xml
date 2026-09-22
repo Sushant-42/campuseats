@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"
+               xmlns:uni="urn:unipay:payments">
+    <soap:Body>
+        <soap:Fault>
+            <faultcode>soap:Client</faultcode>
+            <faultstring>Card declined due to insufficient funds</faultstring>
+            <detail>
+                <uni:paymentFault>
+                    <uni:errorCode>CARD_DECLINED</uni:errorCode>
+                    <uni:errorMessage>The card account has insufficient funds to cover the transaction amount.</uni:errorMessage>
+                </uni:paymentFault>
+            </detail>
+        </soap:Fault>
+    </soap:Body>
+</soap:Envelope>
