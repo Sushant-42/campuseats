@@ -1,0 +1,190 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CampusEats Menu</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 750px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f4f7fb;
+            color: #222;
+        }
+
+        h1 {
+            color: #176b45;
+        }
+
+        .card, form {
+            background: white;
+            padding: 18px;
+            margin: 15px 0;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px #00000012;
+        }
+
+        input, button {
+            padding: 10px;
+            margin: 5px 0;
+            box-sizing: border-box;
+        }
+
+        input {
+            width: 100%;
+        }
+
+        button {
+            background: #176b45;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .status {
+            margin-top: 12px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>CampusEats 🍽️</h1>
+    <h2>Available Dishes</h2>
+
+    <div id="menu">Loading dishes...</div>
+
+    <h2>Add a Dish</h2>
+
+    <form id="dishForm">
+        <input id="name" type="text"
+               placeholder="Dish name" required>
+
+        <input id="price" type="number"
+               placeholder="Price in ₹" min="0.01"
+               step="0.01" required>
+
+        <label>
+            <input id="available" type="checkbox" checked
+                   style="width:auto">
+            Available
+        </label>
+
+        <br>
+        <button type="submit">Add Dish</button>
+    </form>
+
+    <p id="status" class="status"></p>
+
+    <script>
+        const endpoint = '/graphql';
+
+        async function loadDishes() {
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    query: `query {
+                        dishes {
+                            id
+                            name
+                            price
+                            available
+                        }
+                    }`
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.errors) {
+                throw new Error(result.errors[0].message);
+            }
+
+            const menu = document.getElementById('menu');
+            menu.replaceChildren();
+
+            result.data.dishes.forEach(dish => {
+                const card = document.createElement('div');
+                card.className = 'card';
+
+                const title = document.createElement('h3');
+                title.textContent = dish.name;
+
+                const price = document.createElement('p');
+                price.textContent = `Price: ₹${dish.price}`;
+
+                const availability = document.createElement('p');
+                availability.textContent = dish.available
+                    ? 'Available'
+                    : 'Not available';
+
+                card.append(title, price, availability);
+                menu.appendChild(card);
+            });
+        }
+
+        document.getElementById('dishForm')
+            .addEventListener('submit', async event => {
+                event.preventDefault();
+
+                const name = document.getElementById('name').value.trim();
+                const price = Number(
+                    document.getElementById('price').value
+                );
+                const available =
+                    document.getElementById('available').checked;
+
+                const status = document.getElementById('status');
+                status.textContent = 'Adding dish...';
+
+                try {
+                    const response = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            query: `mutation AddDish($input: AddDishInput!) {
+                                addDish(input: $input) {
+                                    id
+                                    name
+                                    price
+                                    available
+                                }
+                            }`,
+                            variables: {
+                                input: { name, price, available }
+                            }
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.errors) {
+                        throw new Error(result.errors[0].message);
+                    }
+
+                    status.textContent =
+                        `Added ${result.data.addDish.name} successfully!`;
+
+                    event.target.reset();
+                    await loadDishes();
+                } catch (error) {
+                    status.textContent = `Error: ${error.message}`;
+                }
+            });
+
+        loadDishes().catch(error => {
+            document.getElementById('menu').textContent =
+                `Could not load dishes: ${error.message}`;
+        });
+    </script>
+</body>
+</html>

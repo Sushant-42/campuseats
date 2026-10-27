@@ -1,0 +1,21 @@
+{
+  "name": "campus-eats",
+  "version": "1.0.0",
+  "description": "",
+  "main": "db.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@apollo/server": "^5.5.1",
+    "@as-integrations/express5": "^1.1.2",
+    "cors": "^2.8.6",
+    "express": "^5.3.0",
+    "graphql": "^16.14.2",
+    "mysql2": "^3.24.6"
+  }
+}
